@@ -13,7 +13,6 @@ from fastapi.responses import StreamingResponse
 import io
 import pandas as pd
 from app.use_cases.upload_files import handle_upload
-from app.use_cases.run_calculation import run_settlement_task
 
 router = APIRouter(prefix="/api/v1")
 
