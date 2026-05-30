@@ -130,7 +130,4 @@ async def _run_calculation_async(timeframe_id: int):
             logger.error(f"Error during calculation: {e}")
             raise e
 
-# The celery task entry point
-def run_settlement_task(timeframe_id: int):
-    asyncio.run(_run_calculation_async(timeframe_id))
 

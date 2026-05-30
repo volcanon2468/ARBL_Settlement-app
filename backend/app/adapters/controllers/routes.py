@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
+from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
 from pydantic import BaseModel
@@ -44,11 +44,11 @@ async def upload_file(id: int, file_type: str, file: UploadFile = File(...), db:
     return result
 
 @router.post("/timeframes/{id}/calculate")
-async def trigger_calculation(id: int, db: AsyncSession = Depends(get_db)):
-    # Trigger celery task
-    from app.infrastructure.celery_app import celery_app
-    task = celery_app.send_task("app.use_cases.run_calculation.run_settlement_task", args=[id])
-    return {"success": True, "data": {"job_id": task.id}}
+async def trigger_calculation(id: int, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
+    # Trigger calculation in background thread
+    from app.use_cases.run_calculation import _run_calculation_async
+    background_tasks.add_task(_run_calculation_async, id)
+    return {"success": True, "data": {"job_id": f"local_task_{id}"}}
 
 @router.get("/timeframes/{id}/results")
 async def get_results(id: int, db: AsyncSession = Depends(get_db)):
