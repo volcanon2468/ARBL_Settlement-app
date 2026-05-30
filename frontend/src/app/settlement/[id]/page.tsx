@@ -28,7 +28,7 @@ export default function TimeframeDetails({ params }: { params: { id: string } })
   // Results
   const [results, setResults] = useState<any[]>([]);
 
-  const API_BASE = "http://localhost:8000/api/v1";
+  const API_BASE = "/api/v1";
 
   useEffect(() => {
     loadTimeframe();
