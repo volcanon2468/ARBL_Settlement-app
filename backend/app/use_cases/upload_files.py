@@ -54,7 +54,9 @@ async def handle_upload(db: AsyncSession, timeframe_id: int, file_type: str, fil
                     ON target.Timeframe_Id = source.Timeframe_Id AND target.Block_Date = source.Block_Date AND target.Slot = source.Slot
                     WHEN NOT MATCHED THEN
                         INSERT (Timeframe_Id, Block_Date, Slot, Active_KW)
-                        VALUES (source.Timeframe_Id, source.Block_Date, source.Slot, source.Active_KW);
+                        VALUES (source.Timeframe_Id, source.Block_Date, source.Slot, source.Active_KW)
+                    WHEN MATCHED THEN
+                        UPDATE SET target.Active_KW = source.Active_KW;
                 """)
                 params = [{"Timeframe_Id": timeframe_id, "Block_Date": b["Block_Date"], "Slot": b["Slot"], "Active_KW": b["Active_KW"]} for b in blocks]
                 await db.execute(stmt, params)
@@ -71,7 +73,9 @@ async def handle_upload(db: AsyncSession, timeframe_id: int, file_type: str, fil
                     ON target.Timeframe_Id = source.Timeframe_Id AND target.Consumer_Label = source.Consumer_Label AND target.Block_Date = source.Block_Date AND target.Slot = source.Slot
                     WHEN NOT MATCHED THEN
                         INSERT (Timeframe_Id, Consumer_Label, Block_Date, Slot, Apparent_KVA, Active_KW_Raw)
-                        VALUES (source.Timeframe_Id, source.Consumer_Label, source.Block_Date, source.Slot, source.Apparent_KVA, source.Active_KW_Raw);
+                        VALUES (source.Timeframe_Id, source.Consumer_Label, source.Block_Date, source.Slot, source.Apparent_KVA, source.Active_KW_Raw)
+                    WHEN MATCHED THEN
+                        UPDATE SET target.Apparent_KVA = source.Apparent_KVA, target.Active_KW_Raw = source.Active_KW_Raw;
                 """)
                 params = [{"Timeframe_Id": timeframe_id, "Consumer_Label": b["Consumer_Label"], "Block_Date": b["Block_Date"], "Slot": b["Slot"], "Apparent_KVA": b["Apparent_KVA"], "Active_KW_Raw": b["Active_KW_Raw"]} for b in blocks]
                 await db.execute(stmt, params)
@@ -88,7 +92,9 @@ async def handle_upload(db: AsyncSession, timeframe_id: int, file_type: str, fil
                     ON target.Timeframe_Id = source.Timeframe_Id AND target.Consumer_Label = source.Consumer_Label AND target.Block_Date = source.Block_Date AND target.Slot = source.Slot
                     WHEN NOT MATCHED THEN
                         INSERT (Timeframe_Id, Consumer_Label, Block_Date, Slot, Apparent_KVA, Active_KW_Raw)
-                        VALUES (source.Timeframe_Id, source.Consumer_Label, source.Block_Date, source.Slot, source.Apparent_KVA, source.Active_KW_Raw);
+                        VALUES (source.Timeframe_Id, source.Consumer_Label, source.Block_Date, source.Slot, source.Apparent_KVA, source.Active_KW_Raw)
+                    WHEN MATCHED THEN
+                        UPDATE SET target.Apparent_KVA = source.Apparent_KVA, target.Active_KW_Raw = source.Active_KW_Raw;
                 """)
                 params = [{"Timeframe_Id": timeframe_id, "Consumer_Label": b["Consumer_Label"], "Block_Date": b["Block_Date"], "Slot": b["Slot"], "Apparent_KVA": b["Apparent_KVA"], "Active_KW_Raw": b["Active_KW_Raw"]} for b in blocks]
                 await db.execute(stmt, params)
@@ -105,7 +111,9 @@ async def handle_upload(db: AsyncSession, timeframe_id: int, file_type: str, fil
                     ON target.Timeframe_Id = source.Timeframe_Id AND target.Consumer_Label = source.Consumer_Label AND target.Block_Date = source.Block_Date AND target.Slot = source.Slot
                     WHEN NOT MATCHED THEN
                         INSERT (Timeframe_Id, Consumer_Label, Block_Date, Slot, IEX_KW)
-                        VALUES (source.Timeframe_Id, source.Consumer_Label, source.Block_Date, source.Slot, source.IEX_KW);
+                        VALUES (source.Timeframe_Id, source.Consumer_Label, source.Block_Date, source.Slot, source.IEX_KW)
+                    WHEN MATCHED THEN
+                        UPDATE SET target.IEX_KW = source.IEX_KW;
                 """)
                 params = [{"Timeframe_Id": timeframe_id, "Consumer_Label": b["Consumer_Label"], "Block_Date": b["Block_Date"], "Slot": b["Slot"], "IEX_KW": b["IEX_KW"]} for b in blocks]
                 await db.execute(stmt, params)
@@ -122,7 +130,9 @@ async def handle_upload(db: AsyncSession, timeframe_id: int, file_type: str, fil
                     ON target.Timeframe_Id = source.Timeframe_Id AND target.Consumer_Label = source.Consumer_Label AND target.Block_Date = source.Block_Date AND target.Slot = source.Slot
                     WHEN NOT MATCHED THEN
                         INSERT (Timeframe_Id, Consumer_Label, Block_Date, Slot, IEX_KW)
-                        VALUES (source.Timeframe_Id, source.Consumer_Label, source.Block_Date, source.Slot, source.IEX_KW);
+                        VALUES (source.Timeframe_Id, source.Consumer_Label, source.Block_Date, source.Slot, source.IEX_KW)
+                    WHEN MATCHED THEN
+                        UPDATE SET target.IEX_KW = source.IEX_KW;
                 """)
                 params = [{"Timeframe_Id": timeframe_id, "Consumer_Label": b["Consumer_Label"], "Block_Date": b["Block_Date"], "Slot": b["Slot"], "IEX_KW": b["IEX_KW"]} for b in blocks]
                 await db.execute(stmt, params)
