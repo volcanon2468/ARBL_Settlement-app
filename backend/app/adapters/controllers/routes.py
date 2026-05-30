@@ -171,11 +171,52 @@ async def export_excel(id: int, type: str, consumer: str = "ALL", db: AsyncSessi
         data = [b.__dict__ for b in res.scalars().all()]
         for d in data: d.pop('_sa_instance_state', None)
     elif type == "final":
-        query = select(SettlementResult).where(SettlementResult.Timeframe_Id == id)
-        if consumer != "ALL": query = query.where(SettlementResult.Consumer_Label == consumer)
-        res = await db.execute(query)
-        data = [b.__dict__ for b in res.scalars().all()]
-        for d in data: d.pop('_sa_instance_state', None)
+        from sqlalchemy.orm import selectinload
+        query = select(SettlementTimeframe).options(selectinload(SettlementTimeframe.variables)).where(SettlementTimeframe.Id == id)
+        tf_res = await db.execute(query)
+        tf = tf_res.scalar_one_or_none()
+        if not tf:
+            raise HTTPException(status_code=404, detail="Timeframe not found")
+            
+        res_query = select(SettlementResult).where(SettlementResult.Timeframe_Id == id)
+        if consumer != "ALL": res_query = res_query.where(SettlementResult.Consumer_Label == consumer)
+        res_db = await db.execute(res_query)
+        results = res_db.scalars().all()
+        
+        data = []
+        for r in results:
+            c_name = tf.variables.Con1_Name if r.Consumer_Label == tf.variables.Con1_Label else tf.variables.Con2_Name
+            data.append({
+                "Settlement Period From Date": tf.Start_Date,
+                "Settlement Period To date": tf.End_Date,
+                "Consumer": r.Consumer_Label,
+                "Consumer Name": c_name or r.Consumer_Label,
+                "Max demand date": r.Max_Demand_Date,
+                "Max demand time (Slot)": r.Max_Demand_Slot_Str,
+                "Prior Schedule At Entry Point": r.Prior_Sch_At_Entry_KWH,
+                "Schedule From Bank": r.Sch_From_Bank_KWH,
+                "Generator Actual Generation (*)": r.Total_Gen_KWH,
+                "Generator Actual Generation Limited to Contracted Capacity": r.Total_Gen_KWH,
+                "Revised Generator Generation Allocated to Consumer at Entry": r.Revised_Gen_Allocated_KWH,
+                "Energy Consumed Accountable to Generator": r.Energy_Accountable_KWH,
+                "Total Energy Accountable to Generator from all Consumers": r.Total_Accountable_KWH,
+                "Inadvertent Power to Discoms Due to Less Drawn by Consumer": "-",
+                "Bank": r.Bank_KWH,
+                "Consumer Actual Consumption": r.Total_Consumer_Actual_KWH,
+                "Generator Prior Sch alloc at exit": r.Gen_Prior_Sch_At_Exit_KWH,
+                "Generator Realloc Sch at exit": r.Gen_Prior_Sch_At_Exit_KWH,
+                "Generator Wise Deviation": 0,
+                "Consumer Actual cons from gen": r.Cons_Actual_From_Gen_KWH,
+                "Energy Accountable to Discom in KVAH": r.Discom_KVAH,
+                "Schedule At Entry Point in KW": r.Schedule_At_Entry_KW,
+                "Actual Generation in KW": r.Actual_Gen_KW,
+                "Revised Schedule At Exit Point in KW": r.Revised_Sch_At_Exit_KW,
+                "Actual Drawn By Consumer in KW": r.Max_Actual_KW,
+                "Consumer Actual Consumption From Generator in KW": r.Cons_From_Gen_KW,
+                "Accountable to Discom in KW": r.Accountable_To_Discom_KW,
+                "PF Value": r.PF_Value,
+                "MAXDEMAND (KVA)": r.Max_Demand_KVA
+            })
     else:
         raise HTTPException(status_code=400, detail="Invalid export type")
         
