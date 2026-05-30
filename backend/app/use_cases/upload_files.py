@@ -56,9 +56,9 @@ async def handle_upload(db: AsyncSession, timeframe_id: int, file_type: str, fil
                         INSERT (Timeframe_Id, Block_Date, Slot, Active_KW)
                         VALUES (source.Timeframe_Id, source.Block_Date, source.Slot, source.Active_KW);
                 """)
-                for b in blocks:
-                    res = await db.execute(stmt, {"Timeframe_Id": timeframe_id, "Block_Date": b["Block_Date"], "Slot": b["Slot"], "Active_KW": b["Active_KW"]})
-                    blocks_inserted += res.rowcount
+                params = [{"Timeframe_Id": timeframe_id, "Block_Date": b["Block_Date"], "Slot": b["Slot"], "Active_KW": b["Active_KW"]} for b in blocks]
+                await db.execute(stmt, params)
+                blocks_inserted = len(blocks)
                 
         elif file_type == 'con1_cdf':
             variables.Con1_CDF_Path = file_path
@@ -73,9 +73,9 @@ async def handle_upload(db: AsyncSession, timeframe_id: int, file_type: str, fil
                         INSERT (Timeframe_Id, Consumer_Label, Block_Date, Slot, Apparent_KVA, Active_KW_Raw)
                         VALUES (source.Timeframe_Id, source.Consumer_Label, source.Block_Date, source.Slot, source.Apparent_KVA, source.Active_KW_Raw);
                 """)
-                for b in blocks:
-                    res = await db.execute(stmt, {"Timeframe_Id": timeframe_id, "Consumer_Label": b["Consumer_Label"], "Block_Date": b["Block_Date"], "Slot": b["Slot"], "Apparent_KVA": b["Apparent_KVA"], "Active_KW_Raw": b["Active_KW_Raw"]})
-                    blocks_inserted += res.rowcount
+                params = [{"Timeframe_Id": timeframe_id, "Consumer_Label": b["Consumer_Label"], "Block_Date": b["Block_Date"], "Slot": b["Slot"], "Apparent_KVA": b["Apparent_KVA"], "Active_KW_Raw": b["Active_KW_Raw"]} for b in blocks]
+                await db.execute(stmt, params)
+                blocks_inserted = len(blocks)
                 
         elif file_type == 'con2_cdf':
             variables.Con2_CDF_Path = file_path
@@ -90,9 +90,9 @@ async def handle_upload(db: AsyncSession, timeframe_id: int, file_type: str, fil
                         INSERT (Timeframe_Id, Consumer_Label, Block_Date, Slot, Apparent_KVA, Active_KW_Raw)
                         VALUES (source.Timeframe_Id, source.Consumer_Label, source.Block_Date, source.Slot, source.Apparent_KVA, source.Active_KW_Raw);
                 """)
-                for b in blocks:
-                    res = await db.execute(stmt, {"Timeframe_Id": timeframe_id, "Consumer_Label": b["Consumer_Label"], "Block_Date": b["Block_Date"], "Slot": b["Slot"], "Apparent_KVA": b["Apparent_KVA"], "Active_KW_Raw": b["Active_KW_Raw"]})
-                    blocks_inserted += res.rowcount
+                params = [{"Timeframe_Id": timeframe_id, "Consumer_Label": b["Consumer_Label"], "Block_Date": b["Block_Date"], "Slot": b["Slot"], "Apparent_KVA": b["Apparent_KVA"], "Active_KW_Raw": b["Active_KW_Raw"]} for b in blocks]
+                await db.execute(stmt, params)
+                blocks_inserted = len(blocks)
                 
         elif file_type == 'iex1':
             variables.IEX1_Path = file_path
@@ -107,9 +107,9 @@ async def handle_upload(db: AsyncSession, timeframe_id: int, file_type: str, fil
                         INSERT (Timeframe_Id, Consumer_Label, Block_Date, Slot, IEX_KW)
                         VALUES (source.Timeframe_Id, source.Consumer_Label, source.Block_Date, source.Slot, source.IEX_KW);
                 """)
-                for b in blocks:
-                    res = await db.execute(stmt, {"Timeframe_Id": timeframe_id, "Consumer_Label": b["Consumer_Label"], "Block_Date": b["Block_Date"], "Slot": b["Slot"], "IEX_KW": b["IEX_KW"]})
-                    blocks_inserted += res.rowcount
+                params = [{"Timeframe_Id": timeframe_id, "Consumer_Label": b["Consumer_Label"], "Block_Date": b["Block_Date"], "Slot": b["Slot"], "IEX_KW": b["IEX_KW"]} for b in blocks]
+                await db.execute(stmt, params)
+                blocks_inserted = len(blocks)
                 
         elif file_type == 'iex2':
             variables.IEX2_Path = file_path
@@ -124,9 +124,9 @@ async def handle_upload(db: AsyncSession, timeframe_id: int, file_type: str, fil
                         INSERT (Timeframe_Id, Consumer_Label, Block_Date, Slot, IEX_KW)
                         VALUES (source.Timeframe_Id, source.Consumer_Label, source.Block_Date, source.Slot, source.IEX_KW);
                 """)
-                for b in blocks:
-                    res = await db.execute(stmt, {"Timeframe_Id": timeframe_id, "Consumer_Label": b["Consumer_Label"], "Block_Date": b["Block_Date"], "Slot": b["Slot"], "IEX_KW": b["IEX_KW"]})
-                    blocks_inserted += res.rowcount
+                params = [{"Timeframe_Id": timeframe_id, "Consumer_Label": b["Consumer_Label"], "Block_Date": b["Block_Date"], "Slot": b["Slot"], "IEX_KW": b["IEX_KW"]} for b in blocks]
+                await db.execute(stmt, params)
+                blocks_inserted = len(blocks)
 
         session_record.Blocks_Parsed = blocks_parsed
         session_record.Blocks_Inserted = blocks_inserted
