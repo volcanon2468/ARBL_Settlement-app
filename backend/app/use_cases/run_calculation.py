@@ -95,7 +95,8 @@ async def _run_calculation_async(timeframe_id: int):
                 raw_iex2_blocks=raw_iex2
             )
             
-            res = engine_calc.run()
+            import asyncio
+            res = await asyncio.to_thread(engine_calc.run)
             duration = time.time() - start_time
             
             # Clear old calculated data
@@ -125,7 +126,10 @@ async def _run_calculation_async(timeframe_id: int):
             
         except Exception as e:
             await async_session.rollback()
-            tf.Status = 'ERROR'
+            from sqlalchemy import update
+            await async_session.execute(
+                update(SettlementTimeframe).where(SettlementTimeframe.Id == timeframe_id).values(Status='ERROR')
+            )
             await async_session.commit()
             logger.error(f"Error during calculation: {e}")
             raise e
