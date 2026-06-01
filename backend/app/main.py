@@ -23,10 +23,9 @@ app.include_router(router)
 @app.on_event("startup")
 async def startup():
     logger.info("Starting up FastAPI application...")
-    # Normally we'd use Alembic, but since it's hard to run migrations locally without MS SQL,
-    # we can try to do a create_all as a fallback if desired. However, the plan states
-    # alembic handles migrations. We leave this as is.
-    pass
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    logger.info("Database tables initialized successfully.")
 
 @app.get("/api/v1/health")
 async def health_check():
