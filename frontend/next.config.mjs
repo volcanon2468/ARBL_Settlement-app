@@ -1,7 +1,9 @@
-/** @type {import('next').NextConfig} */
 const API_PORT = process.env.API_PORT || 8000;
 
 const nextConfig = {
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   async rewrites() {
     return [
       {

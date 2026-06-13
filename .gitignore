@@ -3,7 +3,6 @@ node_modules/
 out/
 build/
 
-# Python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -28,10 +27,8 @@ wheels/
 venv/
 .env
 
-# OS
 .DS_Store
 Thumbs.db
 
-# IDE
 .vscode/
 .idea/
