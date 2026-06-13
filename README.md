@@ -1,6 +1,6 @@
-# Energy Revenue Settlement Engine
+# APSPDCL Open-Access Management Platform
 
-An enterprise-grade, full-stack application designed to automatically process, calculate, and manage complex block-wise energy generation and consumption data. The platform aggregates raw interval data (15-minute slots), applies dynamic mathematical loss factors, constraints, and capacity limits, and ultimately produces precise financial and physical energy settlement reports across multiple consumers.
+An enterprise-grade, full-stack application designed to automatically process, calculate, and manage massive time-series energy block data. The platform aggregates raw interval data (15-minute slots), applies dynamic mathematical loss factors, constraints, and capacity limits, and ultimately produces precise financial and physical energy settlement reports across multiple consumers.
 
 ## 🚀 Key Features
 
@@ -19,15 +19,17 @@ An enterprise-grade, full-stack application designed to automatically process, c
 
 The platform is strictly decoupled into a high-performance RESTful Backend and a modern React Frontend.
 
-### Backend (Python)
+### Backend (Python 3.11)
 * **Framework:** FastAPI (Asynchronous execution).
-* **Database / ORM:** SQLite powered by SQLAlchemy 2.0 Asyncio engine.
-* **Data Processing:** Pandas (Used extensively for `.cdf` / `.xlsx` high-speed ingestion and final Excel workbook construction).
-* **File Management:** Python native `os` and `shutil` for strictly sanitized local disk upload storage.
+* **Database / ORM:** Microsoft SQL Server powered by SQLAlchemy 2.0 Asyncio engine (via `aioodbc`).
+* **Data Processing:** Pandas (Used extensively for `.cdf` / `.xlsx` high-speed ingestion and vectorized manipulation).
+* **Validation & Security:** Pydantic V2 for strict payload validation, and PyJWT with Passlib (Bcrypt) for stateless edge authentication.
+* **Excel Generation:** Openpyxl dynamically writes and formats the final downloadable `.xlsx` settlement reports.
 
 ### Frontend (TypeScript)
-* **Framework:** Next.js 14 (App Router).
-* **UI & Styling:** TailwindCSS combined with `shadcn/ui` (Radix Primitives).
+* **Framework:** Next.js 14 (App Router) with React 18.
+* **Security:** Edge-Level Authentication via Next.js Middleware to intercept and decode JWT cookies natively at the edge.
+* **UI & Styling:** TailwindCSS combined with `shadcn/ui` (Radix Primitives) and Lucide React icons.
 * **Data Visualization:** Recharts (`LineChart` components with distinct solid and dashed stroke logic for multi-consumer mapping).
 * **State & Notifications:** React Hooks and `sonner` for gorgeous, non-blocking asynchronous state toasts.
 
