@@ -114,6 +114,10 @@ async def get_results(id: int, db: AsyncSession = Depends(get_db)):
 class VariablesModel(BaseModel):
     Share_Cons1: float
     Share_Cons2: float
+    Cap_Share_Cons1: float = 50.0
+    Cap_Share_Cons2: float = 50.0
+    Override_Capacity_MW: Optional[float] = None
+    Old_Bank_KWH: Optional[float] = None
     Bank_Usage_Start_Month: Optional[int] = None
     Bank_Usage_Start_Year: Optional[int] = None
     Bank_Usage_End_Month: Optional[int] = None
@@ -473,35 +477,39 @@ async def export_excel(
             raise HTTPException(status_code=404, detail="Timeframe not found")
         res_query = select(SettlementResult).where(
             SettlementResult.Timeframe_Id == id)
-        if consumer != "ALL":
-            res_query = res_query.where(
-                SettlementResult.Consumer_Label == consumer)
         res_db = await db.execute(res_query)
-        results = res_db.scalars().all()
+        res_db_all = res_db.scalars().all()
+        
+        total_gen_capped = sum(r.Prior_Sch_At_Entry_KWH for r in res_db_all)
+
+        results = res_db_all
+        if consumer != "ALL":
+            results = [r for r in results if r.Consumer_Label == consumer]
+            
         data = []
         for r in results:
-            c_name = 'TPT145' if r.Consumer_Label == 'TPT145' else 'CTR2005'
+            c_name = 'TPT2831 (19.5MW)'
             data.append({
-                "Settlement Period From Date": tf.Start_Date,
-                "Settlement Period To date": tf.End_Date,
+                "From date": tf.Start_Date,
+                "To date": tf.End_Date,
                 "Consumer": r.Consumer_Label,
-                "Consumer Name": c_name,
+                "Generator": c_name,
                 "Max demand date": r.Max_Demand_Date,
-                "Max demand time (Slot)": r.Max_Demand_Slot_Str,
+                "Max demand time slot": r.Max_Demand_Slot_Str,
                 "Prior Schedule At Entry Point": r.Prior_Sch_At_Entry_KWH,
                 "Schedule From Bank": r.Sch_From_Bank_KWH,
                 "Generator Actual Generation (*)": r.Total_Gen_KWH,
-                "Generator Actual Generation Limited to Contracted Capacity": r.Total_Gen_KWH,
+                "Generator Actual Generation Limited to Contracted Capacity": total_gen_capped,
                 "Revised Generator Generation Allocated to Consumer at Entry": r.Revised_Gen_Allocated_KWH,
                 "Energy Consumed Accountable to Generator": r.Energy_Accountable_KWH,
-                "Total Energy Accountable to Generator from all Consumers": r.Total_Accountable_KWH,
-                "Inadvertent Power to Discoms Due to Less Drawn by Consumer": "-",
+                "Total Energy Accountable to Generator from all consumers": r.Total_Accountable_KWH,
+                "Inadvartent Power to Discoms Due to Less Drawn by Consumer": "-",
                 "Bank": r.Bank_KWH,
                 "Consumer Actual Consumption": r.Total_Consumer_Actual_KWH,
-                "Generator Prior Sch alloc at exit": r.Gen_Prior_Sch_At_Exit_KWH,
+                "Generator Prior Sch at exit": r.Gen_Prior_Sch_At_Exit_KWH,
                 "Generator Realloc Sch at exit": r.Gen_Prior_Sch_At_Exit_KWH,
                 "Generator Wise Deviation": 0,
-                "Consumer Actual cons from gen": r.Cons_Actual_From_Gen_KWH,
+                "Consumer Actual Cons from gen": r.Cons_Actual_From_Gen_KWH,
                 "Energy Accountable to Discom in KVAH": r.Discom_KVAH,
                 "Schedule At Entry Point in KW": r.Schedule_At_Entry_KW,
                 "Actual Generation in KW": r.Actual_Gen_KW,

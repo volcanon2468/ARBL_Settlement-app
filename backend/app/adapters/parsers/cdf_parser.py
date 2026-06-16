@@ -74,11 +74,12 @@ def parse_cons_cdf(
                     elif pc == 'P7-1-5-1-0':
                         act_i = float(param.attrib.get('VALUE', 0))
                 kva = app_i * ct_ratio
+                act = act_i * ct_ratio
                 blocks.append({
                     "Consumer_Label": consumer_label,
                     "Block_Date": d,
                     "Slot": slot,
                     "Apparent_KVA": kva,
-                    "Active_KW_Raw": act_i
+                    "Active_KW_Raw": act
                 })
     return blocks

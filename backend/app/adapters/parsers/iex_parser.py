@@ -23,7 +23,15 @@ def parse_iex_excel(
     wb = openpyxl.load_workbook(path, data_only=True, read_only=True)
     ws = wb.active
     blocks = []
-    for row in ws.iter_rows(min_row=4, max_col=98):
+    
+    start_row = 4
+    for r in range(1, 200):
+        val = ws.cell(row=r, column=2).value
+        if isinstance(val, str) and 'Actual IEX' in val:
+            start_row = r + 2
+            break
+            
+    for row in ws.iter_rows(min_row=start_row, max_col=98):
         cell_val = row[1].value
         if not cell_val:
             break

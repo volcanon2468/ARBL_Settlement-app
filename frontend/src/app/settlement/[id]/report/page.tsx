@@ -128,7 +128,7 @@ export default function ReportPage({ params }: { params: { id: string } }) {
               onClick={async () => {
                 try {
                   const token = localStorage.getItem('token');
-                  const res = await fetch(`${API_BASE}/timeframes/${params.id}/export`, {
+                  const res = await fetch(`${API_BASE}/timeframes/${params.id}/export?type=final`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                   });
                   if (!res.ok) throw new Error("Export failed");

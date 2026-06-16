@@ -54,6 +54,9 @@ async def _run_calculation_async(timeframe_id: int):
                     'Share_Cons1': variables.Share_Cons1,
                     'Share_Cons2': variables.Share_Cons2,
                     'Bank_Loss_Pct': variables.Bank_Loss_Pct,
+                    'Override_Capacity_MW': variables.Override_Capacity_MW,
+                    'Cap_Share_Cons1': variables.Cap_Share_Cons1,
+                    'Cap_Share_Cons2': variables.Cap_Share_Cons2,
                     'Con1_Label': 'TPT145',
                     'Con2_Label': 'CTR2005'
                 }
@@ -88,7 +91,7 @@ async def _run_calculation_async(timeframe_id: int):
                     end_val = e_year * 12 + e_month
                     for tf_row, var_row in all_tf_res.all():
                         val = tf_row.Year * 12 + tf_row.Month
-                        if start_val <= val <= end_val:
+                        if start_val <= val <= end_val and tf_row.Id != timeframe_id:
                             available_sources.append({
                                 'Id': tf_row.Id,
                                 'Month': tf_row.Month,

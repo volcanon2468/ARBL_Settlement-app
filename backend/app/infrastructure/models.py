@@ -52,6 +52,9 @@ class SettlementVariables(Base):
     IEX2_Path = Column(String(500), nullable=True)
     Share_Cons1 = Column(Float, nullable=False, default=30.0)
     Share_Cons2 = Column(Float, nullable=False, default=70.0)
+    Cap_Share_Cons1 = Column(Float, nullable=False, default=50.0)
+    Cap_Share_Cons2 = Column(Float, nullable=False, default=50.0)
+    Override_Capacity_MW = Column(Float, nullable=True)
     Banked_Added_KWH = Column(Float, nullable=False, default=0.0)
     Banked_Remaining_KWH = Column(Float, nullable=False, default=0.0)
     Bank_Usage_Start_Month = Column(Integer, nullable=True)
@@ -59,6 +62,8 @@ class SettlementVariables(Base):
     Bank_Usage_End_Month = Column(Integer, nullable=True)
     Bank_Usage_End_Year = Column(Integer, nullable=True)
     Bank_Loss_Pct = Column(Float, nullable=False, default=2.0)
+    Con1_PF = Column(Float, nullable=False, default=1.0)
+    Con2_PF = Column(Float, nullable=False, default=1.0)
     Created_At = Column(DateTime, default=datetime.utcnow)
     Updated_At = Column(
         DateTime,
@@ -255,9 +260,9 @@ class SettlementResult(Base):
             'Settlement_Timeframes.Id',
             ondelete='CASCADE'),
         nullable=False)
-    Consumer_Label = Column(String(20), nullable=False)
-    Total_Gen_KWH = Column(Float, nullable=True)
-    Active_Blocks = Column(Integer, nullable=True)
+    Consumer_Label = Column(String(100), nullable=False)
+    Total_Gen_KWH = Column(Float, nullable=False)
+    Active_Blocks = Column(Integer, nullable=False)
     Flat_KW_Allocated = Column(Float, nullable=True)
     Avg_Gen_KW = Column(Float, nullable=True)
     Prior_Sch_At_Entry_KWH = Column(Float, nullable=True)

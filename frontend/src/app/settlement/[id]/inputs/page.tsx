@@ -129,7 +129,7 @@ export default function InputsPage({ params }: { params: { id: string } }) {
       const clRes = await fetch(`${API_BASE}/timeframes/${params.id}/custom_losses`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ windows: customLosses.map(cl => ({...cl, Loss_Pct: parseFloat(cl.Loss_Pct) || 0})) })
+        body: JSON.stringify({ losses: customLosses.map(cl => ({...cl, Loss_Pct: parseFloat(cl.Loss_Pct) || 0})) })
       });
       if(!res.ok || !swRes.ok || !clRes.ok) {
          setErrorMsg("Failed to save variables, shutdown windows, or custom losses.");
