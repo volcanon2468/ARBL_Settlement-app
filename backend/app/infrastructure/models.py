@@ -57,6 +57,7 @@ class SettlementVariables(Base):
     Override_Capacity_MW = Column(Float, nullable=True)
     Banked_Added_KWH = Column(Float, nullable=False, default=0.0)
     Banked_Remaining_KWH = Column(Float, nullable=False, default=0.0)
+    Old_Bank_KWH = Column(Float, nullable=True)
     Bank_Usage_Start_Month = Column(Integer, nullable=True)
     Bank_Usage_Start_Year = Column(Integer, nullable=True)
     Bank_Usage_End_Month = Column(Integer, nullable=True)

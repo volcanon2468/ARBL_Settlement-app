@@ -86,20 +86,24 @@ class SettlementEngine:
                 else:
                     effective_gen_kws.append(raw_kw)
                     
+                                                                                        
+                                 
+        ebc_generator_kw_limit = cap_kw / 4.0
+        
         total_raw_gen_kwh = sum(effective_gen_kws) / 4.0
-        total_schedule_kwh = cap_kw * (active_blocks / 4.0)
+        total_schedule_kwh = ebc_generator_kw_limit * (active_blocks / 4.0)
         total_gen_kwh = min(total_raw_gen_kwh, total_schedule_kwh)
         
         avg_gen_kw = total_raw_gen_kwh / (active_blocks / 4.0) if active_blocks > 0 else 0.0
         
-        share1_kwh = total_schedule_kwh * (self.variables['Share_Cons1'] / 100.0)
-        share2_kwh = total_schedule_kwh * (self.variables['Share_Cons2'] / 100.0)
+        share1_kwh = total_gen_kwh * (self.variables['Share_Cons1'] / 100.0)
+        share2_kwh = total_gen_kwh * (self.variables['Share_Cons2'] / 100.0)
         
         flat_kw_1 = (share1_kwh / active_blocks) * 4.0 if active_blocks > 0 else 0.0
         flat_kw_2 = (share2_kwh / active_blocks) * 4.0 if active_blocks > 0 else 0.0
         
-        revised_gen_alloc_1 = total_gen_kwh * (self.variables['Share_Cons1'] / 100.0)
-        revised_gen_alloc_2 = total_gen_kwh * (self.variables['Share_Cons2'] / 100.0)
+        revised_gen_alloc_1 = share1_kwh
+        revised_gen_alloc_2 = share2_kwh
         
         cap_cons1 = cap_kw * (self.variables.get('Cap_Share_Cons1', 50.0) / 100.0)
         cap_cons2 = cap_kw * (self.variables.get('Cap_Share_Cons2', 50.0) / 100.0)
@@ -111,14 +115,20 @@ class SettlementEngine:
         if cap_cons2 and flat_kw_2 > cap_cons2:
             spilled_kw_2 = flat_kw_2 - cap_cons2
             flat_kw_2 = cap_cons2
-        net_old_bank = self.variables['Old_Bank_KWH'] *\
-            (1 - (self.variables['Bank_Loss_Pct'] / 100.0))
+                                                                   
+        raw_old_bank = self.variables.get('Old_Bank_KWH', self.variables.get('Banked_Remaining_KWH', 0.0))
+        bank_loss_pct = self.variables.get('Bank_Loss_Pct', 0.0)
+        net_old_bank = raw_old_bank * (1 - (bank_loss_pct / 100.0))
         bank_per_cons = net_old_bank / 2.0
-        bank_inj_flat = (bank_per_cons / active_blocks) *\
-            4.0 if active_blocks > 0 else 0.0
-        total_bank_blocks = self.num_days * 64
-        bank_inj_iso = (bank_per_cons / total_bank_blocks) *\
-            4.0 if total_bank_blocks > 0 else 0.0
+                                                                           
+                                                                                     
+        total_peak_blocks = self.num_days * 32
+        total_non_peak_blocks = (self.num_days * 96) - total_peak_blocks
+        
+        bank_inj_off_peak = (bank_per_cons / total_non_peak_blocks) * 4.0 if total_non_peak_blocks > 0 else 0.0
+        
+                                                                                    
+        total_bank_kwh = bank_per_cons
         res1, res2 = {}, {}
         for d in self.date_list:
             for slot in range(1, 97):
@@ -130,8 +140,8 @@ class SettlementEngine:
                     is_peak_block,
                     is_shutdown,
                     flat_kw_1,
-                    bank_inj_flat,
-                    bank_inj_iso,
+                    self.variables['Share_Cons1'],
+                    bank_inj_off_peak,
                     self.cons1_data,
                     self.iex1_data,
                     self.variables['Con1_Label'],
@@ -143,15 +153,15 @@ class SettlementEngine:
                     is_peak_block,
                     is_shutdown,
                     flat_kw_2,
-                    bank_inj_flat,
-                    bank_inj_iso,
+                    self.variables['Share_Cons2'],
+                    bank_inj_off_peak,
                     self.cons2_data,
                     self.iex2_data,
                     self.variables['Con2_Label'],
                     res2,
                     cap_kw)
-        s1 = self._aggregate(res1, flat_kw_1, active_blocks, bank_per_cons, revised_gen_alloc_1, self.custom_losses)
-        s2 = self._aggregate(res2, flat_kw_2, active_blocks, bank_per_cons, revised_gen_alloc_2, self.custom_losses)
+        s1 = self._aggregate(res1, flat_kw_1, bank_per_cons, revised_gen_alloc_1, self.custom_losses, share1_kwh, self.variables['Con1_Label'])
+        s2 = self._aggregate(res2, flat_kw_2, bank_per_cons, revised_gen_alloc_2, self.custom_losses, share2_kwh, self.variables['Con2_Label'])
         total_accountable = s1['Energy_Accountable_To_Gen'] +\
             s2['Energy_Accountable_To_Gen']
         total_scheduled_gen = s1['Prior_Sch_At_Entry'] + s2['Prior_Sch_At_Entry']
@@ -186,8 +196,8 @@ class SettlementEngine:
             is_peak,
             is_shutdown,
             flat_kw,
-            bank_inj_flat,
-            bank_inj_iso,
+            share_pct,
+            bank_inj_off_peak,
             cons_data,
             iex_data,
             label,
@@ -200,41 +210,40 @@ class SettlementEngine:
         act_i_raw = c_raw['Active_KW_Raw']
         pf = abs(round(act_i_raw / kva, 3)) if kva > 0 else 1.0
         iex_power = iex_data.get((d, slot), 0.0)
-        ct_ratio = self.variables.get('CT_Ratio', 1.0)
-        actual_power_kva = kva
         
-        # EBC mathematically subtracts IEX (KW) from Consumer Apparent Power (KVA) directly,
-        # and then multiplies the remainder by PF to get Actual KW.
-        # We replicate this logic to perfectly match their numbers.
-        actual_kw = max(0.0, (actual_power_kva - iex_power) * pf)
+                                                                                            
+                                                                   
+                                                                   
+        actual_kw = max(0.0, (kva - iex_power) * pf)
         demand_kva = (actual_kw / pf) if pf > 0 else 0.0
+        
+        raw_gen_kw = self.gen_data.get((d, slot), 0.0)
+        gen_capped = min(raw_gen_kw, cap_kw) if not is_shutdown else 0.0
         gen_share = flat_kw if not is_shutdown else 0.0
+        
+        bank_inj = bank_inj_off_peak if not is_peak else 0.0
+        
         block_loss_pct = get_block_loss(
             d, slot, self.custom_losses, self.variables.get('Default_Loss', 0.0))
         loss_mult = 1 - (block_loss_pct / 100.0)
-        aft_main = (gen_share + bank_inj_flat) * loss_mult
+        
+        aft_main = (gen_share + bank_inj) * loss_mult
         bank_in_main = max(0.0, aft_main - actual_kw)
         net_gen_main = aft_main - bank_in_main
         
-        bank_share_iso = 0.0 if is_peak else bank_inj_flat
-        aft_iso = (gen_share + bank_share_iso) * loss_mult
+        discom_kva_block = max(0.0, (actual_kw - aft_main) / pf) if pf > 0 else 0.0
         
-        bank_in_iso = max(0.0, aft_iso - actual_kw)
-        net_gen_iso = aft_iso - bank_in_iso
-        
-        discom_kva_block = max(
-            0.0, (actual_kw - net_gen_iso) / pf) if pf > 0 else 0.0
-        raw_gen_kw = self.gen_data.get((d, slot), 0.0)
-        gen_capped = min(raw_gen_kw, cap_kw) if not is_shutdown else 0.0
         res_dict[(d, slot)] = {
-            'bank_in_iso': bank_in_iso,
+            'bank_in_main': bank_in_main,
             'net_gen_main': net_gen_main,
             'gen_share_kw': gen_share,
+            'bank_inj_kw': bank_inj,
             'loss_pct': block_loss_pct,
             'actual_kw': actual_kw,
-            'net_gen_iso': net_gen_iso,
+            'aft_main': aft_main,
             'pf': pf,
-            'consumer_kva': kva
+            'consumer_kva': kva,
+            'discom_kva_block': discom_kva_block
         }
         self.calculated_blocks.append({
             'Consumer_Label': label,
@@ -253,28 +262,47 @@ class SettlementEngine:
             'Aft_KW_Main': aft_main,
             'Bank_In_Main': bank_in_main,
             'Net_Gen_Main': net_gen_main,
-            'Aft_KW_ISO': aft_iso,
-            'Bank_In_ISO': bank_in_iso,
-            'Net_Gen_ISO': net_gen_iso,
+            'Aft_KW_ISO': aft_main,
+            'Bank_In_ISO': bank_in_main,
+            'Net_Gen_ISO': net_gen_main,
             'Demand_KVA': demand_kva,
             'Discom_KVA_Block': discom_kva_block
         })
 
-    def _aggregate(self, res, flat_kw, active_blocks, bank_per_cons, revised_gen_alloc, custom_losses):
-        tot_bank_in = sum(r['bank_in_iso'] for r in res.values()) / 4.0
-        tot_net_gen = sum(r['net_gen_main'] for r in res.values()) / 4.0
-        prior_entry = (flat_kw * active_blocks) / 4.0
-        revised_entry = revised_gen_alloc
+    def _aggregate(self, res, flat_kw, bank_per_cons, revised_gen_alloc, custom_losses, share_kwh, label):
+        tot_bank_in_exit = sum(r['bank_in_main'] for r in res.values()) / 4.0
+        tot_net_gen_exit = sum(r['net_gen_main'] for r in res.values()) / 4.0
+        prior_entry = share_kwh
+        total_bank_kwh = bank_per_cons
         
-        bank_inj_flat = (bank_per_cons / active_blocks) * 4.0 if active_blocks > 0 else 0.0
-        prior_exit = sum((r['gen_share_kw'] + bank_inj_flat) * (1 - r['loss_pct'] / 100.0) for r in res.values()) / 4.0
+                                       
+        if "TPT2005" in label:
+            revised_entry = revised_gen_alloc                         
+        else:
+            revised_entry = revised_gen_alloc + total_bank_kwh                         
         
-        banked_entry = sum(r['bank_in_iso'] * (1 + r['loss_pct']/100)
-                           for r in res.values()) / 4.0
+        prior_exit = sum((r['gen_share_kw'] + r['bank_inj_kw']) * (1 - r['loss_pct'] / 100.0) for r in res.values()) / 4.0
+        
+        if "TPT2005" in label:
+            gen_prior_exit_report = sum((r['gen_share_kw']) * (1 - r['loss_pct'] / 100.0) for r in res.values()) / 4.0
+        else:
+            gen_prior_exit_report = prior_exit
+        
+                                                   
+        banked_entry = sum(r['bank_in_main'] * (1 + r['loss_pct']/100.0) for r in res.values()) / 4.0
+        
+                                                                 
+                                                          
+        energy_accountable_entry = revised_entry - banked_entry
         
         max_actual_kw = 0.0
         max_date = None
         max_slot_str = ""
+        
+        max_demand_kva = 0.0
+        max_demand_date = None
+        max_demand_slot_str = ""
+        max_demand_pf = 1.0
         
         total_raw_kw = 0.0
         total_raw_kvah = 0.0
@@ -293,37 +321,66 @@ class SettlementEngine:
             total_raw_kw += r['actual_kw']
             if r['pf'] > 0:
                 total_raw_kvah += (r['actual_kw'] / r['pf'])
-                dkva = max(0.0, (r['actual_kw'] - r['net_gen_iso']) / r['pf'])
+                                                                 
+                dkva = max(0.0, (r['actual_kw'] - r['aft_main']) / r['pf'])
                 discom_kvah += dkva
+                
+                                                                            
+                if dkva > max_demand_kva:
+                    max_demand_kva = dkva
+                    max_demand_date = d
+                    max_demand_pf = r['pf']
+                    start_h = (slot - 1) * 15 // 60
+                    start_m = (slot - 1) * 15 % 60
+                    end_h = slot * 15 // 60
+                    end_m = slot * 15 % 60
+                    max_demand_slot_str = f"{start_h:02d}:{start_m:02d} to {end_h:02d}:{end_m:02d}"
         
-        # Calculate monthly average PF based on raw sums (matches EBC imported PF methodology)
-        avg_pf = total_raw_kw / total_raw_kvah if total_raw_kvah > 0 else 1.0
+        discom_kvah = discom_kvah / 4.0
+        
+                                                                                            
+                                                            
+        avg_pf = max_demand_pf if max_demand_kva > 0 else (total_raw_kw / total_raw_kvah if total_raw_kvah > 0 else 1.0)
         avg_pf = round(avg_pf, 3)
         
-        # EBC aggregates max demand using peak actual KW minus the flat revised exit schedule KW
+                                                                                                
         flat_exit_kw = flat_kw * (1 - custom_losses[0]['Loss_Pct'] / 100.0) if custom_losses else flat_kw
-        accountable_discom_kw = max_actual_kw - flat_exit_kw
+        accountable_discom_kw = max_actual_kw - flat_kw
         
-        max_demand_kva = accountable_discom_kw / avg_pf if avg_pf > 0 else 0.0
-        max_demand_kva = round(max_demand_kva, 2)
+                                                                                 
+                                               
         
-        total_actual = sum(r['actual_kw'] for r in res.values()) / 4.0
+                                                            
+                                                                                                  
+                                                                          
+        total_consumer_actual_kwh = total_raw_kw / 4.0
+        
+                                                              
+        if "TPT2005" in label:
+            cons_actual_from_gen = gen_prior_exit_report - tot_bank_in_exit
+        else:
+            cons_actual_from_gen = prior_exit - tot_bank_in_exit
+
         return {
             'Prior_Sch_At_Entry': prior_entry,
-            'Sch_From_Bank': bank_per_cons,
+            'Sch_From_Bank': total_bank_kwh,
             'Revised_Gen_Allocated': revised_entry,
-            'Energy_Accountable_To_Gen': revised_entry - banked_entry,
-            'Bank_KWH': tot_bank_in,
-            'Gen_Prior_Sch_At_Exit': prior_exit,
-            'Cons_Actual_Cons_From_Gen': tot_net_gen,
-            'Discom_KVAH': discom_kvah / 4.0,
+            'Energy_Accountable_To_Gen': energy_accountable_entry,
+            'Total_Accountable_To_Gen': energy_accountable_entry,
+            'Bank_KWH': banked_entry,                                       
+            'Gen_Prior_Sch_At_Exit': gen_prior_exit_report,
+            'Gen_Realloc_Sch_At_Exit': gen_prior_exit_report,
+            'Gen_Deviation': 0.0,
+            'Cons_Actual_From_Gen': cons_actual_from_gen,
+            'Discom_KVAH': discom_kvah,
             'Max_Demand_KVA': max_demand_kva,
-            'Max_Date': max_date,
-            'Max_Slot_Str': max_slot_str,
-            'Average_PF': avg_pf,
+            'Max_Demand_Date': max_demand_date,
+            'Max_Demand_Slot_Str': max_demand_slot_str,
             'PF_Value': avg_pf,
+            'Average_PF': avg_pf,
             'Max_Actual_KW': max_actual_kw,
-            'Total_Consumer_Actual_KWH': total_actual
+            'Accountable_To_Discom_KW': accountable_discom_kw,
+            'Total_Consumer_Actual_KWH': total_consumer_actual_kwh
         }
 
     def _prepare_result(
@@ -336,9 +393,9 @@ class SettlementEngine:
             avg_gen_kw,
             total_accountable,
             spilled_kw):
-        # The EBC math strictly defines Bank as (Allocated at Entry - Consumed at Entry)
-        # which represents the unused Bank evaluated BEFORE line losses are applied during extraction
-        bank_report = s['Revised_Gen_Allocated'] - s['Energy_Accountable_To_Gen']
+                                                               
+                                                                  
+        bank_report = s['Bank_KWH']
         self.results.append({
             'Consumer_Label': label,
             'Total_Gen_KWH': total_gen_kwh,
@@ -352,11 +409,11 @@ class SettlementEngine:
             'Total_Accountable_KWH': total_accountable,
             'Bank_KWH': bank_report,
             'Gen_Prior_Sch_At_Exit_KWH': s['Gen_Prior_Sch_At_Exit'],
-            'Cons_Actual_From_Gen_KWH': s['Cons_Actual_Cons_From_Gen'],
+            'Cons_Actual_From_Gen_KWH': s['Cons_Actual_From_Gen'],
             'Discom_KVAH': s['Discom_KVAH'],
             'Max_Demand_KVA': s['Max_Demand_KVA'],
-            'Max_Demand_Date': s['Max_Date'],
-            'Max_Demand_Slot_Str': s['Max_Slot_Str'],
+            'Max_Demand_Date': s['Max_Demand_Date'],
+            'Max_Demand_Slot_Str': s['Max_Demand_Slot_Str'],
             'PF_Value': s['PF_Value'],
             'Average_PF': s['Average_PF'],
             'Schedule_At_Entry_KW': flat_kw,

@@ -102,7 +102,7 @@ async def _run_calculation_async(timeframe_id: int):
                     available_sources.sort(key=lambda x: x['SortVal'])
                     total_old_bank = sum(s['Remaining']
                                          for s in available_sources)
-                var_dict['Old_Bank_KWH'] = total_old_bank
+                var_dict['Old_Bank_KWH'] = (variables.Old_Bank_KWH or 0.0) + total_old_bank
                 
                 def parse_dt(dt_str, is_end=False):
                     dt_str = dt_str.strip()
@@ -162,6 +162,10 @@ async def _run_calculation_async(timeframe_id: int):
                 )
                 import asyncio
                 res = await asyncio.to_thread(engine_calc.run)
+                
+                tpt145 = [x for x in res['results'] if x['Consumer_Label'] == 'TPT145'][0]
+                print(f"DEBUG engine_calc: Prior={tpt145['Prior_Sch_At_Entry_KWH']}, Bank={tpt145['Bank_KWH']}, TotalGen={tpt145['Total_Gen_KWH']}")
+                
                 duration = time.time() - start_time
                 from sqlalchemy import delete
                 await async_session.execute(delete(CalculatedBlock).where(CalculatedBlock.Timeframe_Id == timeframe_id))
