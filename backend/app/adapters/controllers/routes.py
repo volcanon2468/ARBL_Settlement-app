@@ -111,6 +111,23 @@ async def get_results(id: int, db: AsyncSession = Depends(get_db)):
     return {"success": True, "data": data}
 
 
+@router.get("/timeframes/{id}/calculated")
+async def get_calculated_blocks(id: int, db: AsyncSession = Depends(get_db)):
+    res = await db.execute(
+        select(CalculatedBlock)
+        .where(CalculatedBlock.Timeframe_Id == id)
+        .order_by(CalculatedBlock.Id)
+        .limit(192)
+    )
+    blocks = res.scalars().all()
+    data = []
+    for b in blocks:
+        d = b.__dict__.copy()
+        d.pop('_sa_instance_state', None)
+        data.append(d)
+    return {"success": True, "data": data}
+
+
 class VariablesModel(BaseModel):
     Share_Cons1: float
     Share_Cons2: float
@@ -528,6 +545,13 @@ async def export_excel(
             headers={
                 "Content-Disposition": f"attachment; filename=history_workbook_{id}.xlsx"})
 
+    elif type == "history_workbook":
+        stream = await _generate_history_workbook(db, start=start, end=end)
+        return StreamingResponse(
+            stream,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={
+                "Content-Disposition": f"attachment; filename=history_workbook_{start}_to_{end}.xlsx"})
     else:
         raise HTTPException(status_code=400, detail="Invalid export type")
     df = pd.DataFrame(data)
@@ -579,6 +603,13 @@ async def export_daterange(
         data = [b.__dict__ for b in res.scalars().all()]
         for d in data:
             d.pop('_sa_instance_state', None)
+    elif type == "history_workbook":
+        stream = await _generate_history_workbook(db, start=start, end=end)
+        return StreamingResponse(
+            stream,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={
+                "Content-Disposition": f"attachment; filename=history_workbook_{start}_to_{end}.xlsx"})
     else:
         raise HTTPException(status_code=400, detail="Invalid export type")
     df = pd.DataFrame(data)
@@ -705,3 +736,92 @@ async def export_timeframe_history(
         headers=headers,
         media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
+
+@router.post("/timeframes/{timeframe_id}/verify-check-file")
+async def verify_check_file(
+        timeframe_id: int,
+        file: UploadFile = File(...),
+        db: AsyncSession = Depends(get_db)):
+    try:
+        contents = await file.read()
+        import pandas as pd
+        import io
+        df = pd.read_excel(io.BytesIO(contents), header=None)
+        
+        stmt = select(SettlementResult).filter(SettlementResult.Timeframe_Id == timeframe_id)
+        res = await db.execute(stmt)
+        db_results = res.scalars().all()
+        
+        if not db_results:
+            return {"success": False, "error": "No calculated results found for this timeframe."}
+        
+        mapping = [
+            ("Prior Schedule At Entry", "Prior_Sch_At_Entry_KWH", 7),
+            ("Schedule From Bank", "Sch_From_Bank_KWH", 8),
+            ("Total Generator Output", "Total_Gen_KWH", 10),
+            ("Revised Gen Allocated", "Revised_Gen_Allocated_KWH", 11),
+            ("Energy Accountable", "Energy_Accountable_KWH", 12),
+            ("Total Accountable", "Total_Accountable_KWH", 13),
+            ("Bank", "Bank_KWH", 15),
+            ("Total Consumer Actual", "Total_Consumer_Actual_KWH", 16),
+            ("Gen Prior Sch at Exit", "Gen_Prior_Sch_At_Exit_KWH", 17),
+            ("Consumer Actual From Gen", "Cons_Actual_From_Gen_KWH", 20),
+            ("Discom KVAH", "Discom_KVAH", 21),
+            ("Schedule At Entry KW", "Schedule_At_Entry_KW", 22),
+            ("Actual Gen KW", "Actual_Gen_KW", 23),
+            ("Revised Sch At Exit KW", "Revised_Sch_At_Exit_KW", 24),
+            ("Max Actual KW", "Max_Actual_KW", 25),
+            ("Cons From Gen KW", "Cons_From_Gen_KW", 26),
+            ("Accountable To Discom KW", "Accountable_To_Discom_KW", 27),
+            ("Average PF", "PF_Value", 28),
+            ("Max Demand KVA", "Max_Demand_KVA", 29)
+        ]
+        
+        verification_data = []
+        
+        for db_res in db_results:
+            label = db_res.Consumer_Label
+            # Find row in Excel
+            row = None
+            for i in range(len(df)):
+                val = df.iloc[i, 3]
+                if isinstance(val, str) and label in val:
+                    row = df.iloc[i]
+                    break
+            
+            if row is None:
+                continue
+                
+            metrics = []
+            for name, db_col, xl_col in mapping:
+                app_val = getattr(db_res, db_col, 0.0)
+                check_val = row[xl_col]
+                
+                try:
+                    app_val = float(app_val)
+                except:
+                    app_val = 0.0
+                    
+                try:
+                    check_val = float(check_val)
+                except:
+                    check_val = 0.0
+                
+                diff = app_val - check_val
+                metrics.append({
+                    "name": name,
+                    "app_val": app_val,
+                    "check_val": check_val,
+                    "diff": diff
+                })
+            
+            verification_data.append({
+                "consumer": label,
+                "metrics": metrics
+            })
+            
+        return {"success": True, "data": verification_data}
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}

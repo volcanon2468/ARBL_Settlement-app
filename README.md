@@ -10,6 +10,8 @@ An enterprise-grade, full-stack application designed to automatically process, c
 * **Custom Loss & Shutdown Engine:** 
   * **Shutdown Windows:** Users can input periods where the generator is offline.
   * **Custom Loss Windows:** Pure-date bounded logic automatically stretches the end-date to `23:59:59.999999` to natively calculate dynamic percentage energy losses without the user having to specify complex time inputs.
+* **ISO vs Main Calculation Separation:** Implements the official Discom formula layer, calculating energy loss, bank injection, and accountability separately at the independent ISO point versus the Main grid point.
+* **Automated Excel Verification:** Allows users to upload a finalized APSPDCL `check.xlsx` macro file to instantly diff and prove the platform's calculation accuracy to 0.00 margins against the standard.
 * **Security & Resource Management:** Deep path-traversal sanitization during file uploads, and atomic `shutil.rmtree` garbage collection ensures zero disk bloat when re-calculating or deleting timeframes.
 * **Advanced Recharts Visualizations:** A fully responsive Next.js frontend utilizing Recharts to dynamically overlay generation and consumption metrics for multiple consumers in real-time.
 
@@ -25,6 +27,7 @@ The platform is strictly decoupled into a high-performance RESTful Backend and a
 * **Data Processing:** Pandas (Used extensively for `.cdf` / `.xlsx` high-speed ingestion and vectorized manipulation).
 * **Validation & Security:** Pydantic V2 for strict payload validation, and PyJWT with Passlib (Bcrypt) for stateless edge authentication.
 * **Excel Generation:** Openpyxl dynamically writes and formats the final downloadable `.xlsx` settlement reports.
+* **Strict Minimalist Codebase:** Following deployment requirements, the application source code is completely devoid of inline comments and docstrings.
 
 ### Frontend (TypeScript)
 * **Framework:** Next.js 14 (App Router) with React 18.
@@ -42,15 +45,15 @@ At the core of the backend lies `SettlementEngine` (inside `backend/app/domain/s
 ### 1. Data Ingestion & Sanitization
 The platform securely uploads and parses:
 * **Generator Files (`.cdf`):** Extracts `Active_KW` per slot.
-* **Consumer/IEX Files (`.xlsx`):** Extracts `Apparent_KVA`, `Active_KW_Raw`, and `IEX_KW` per slot.
+* **Consumer/IEX Files (`.cdf` & `.xlsx`):** Extracts `Apparent_KVA`, `Active_KW_Raw`, and `IEX_KW` per slot.
 
 ### 2. Block Logic Execution
 For every 15-minute slot (1 to 96) for every day in the month:
 1. **Shutdown Check:** If the slot falls inside a `ShutdownWindow`, Generation is instantly hard-forced to `0.0`.
-2. **Cap Generation:** Generation is clipped by `Cap_Gen_KW`.
+2. **Cap Generation:** Generator output is hard-capped to the Contracted Capacity constraint.
 3. **Loss Deduction:** The slot is checked against `CustomLossWindows` to apply dynamic `Loss_Pct`.
 4. **Share Split:** The remaining Generation is mathematically divided between Consumer 1 and Consumer 2 based on `Share_Cons1` and `Share_Cons2`.
-5. **Consumption Cap:** If the allocated share exceeds `Cap_Cons1_KW`, the excess is spilled to `0.0`.
+5. **Gross-Up Banking:** Excess generator power is mathematically injected into the Bank and grossed-up using a reverse-loss algorithm to perfectly represent the accountable KWH entry value.
 
 ### 3. Chronological Bank Processing
 When the monthly total Generation exceeds Consumption, the remainder is pushed to the SQL `Banked_Added_KWH`. 
@@ -86,7 +89,10 @@ settlement-app2/
 
 ## 🛠️ Installation & Setup
 
-### 1. Backend Setup (FastAPI)
+### 1. Database Setup
+The application connects natively to a local Microsoft SQL Server instance (`.\SQLEXPRESS`). Ensure the **ODBC Driver 17 for SQL Server** is installed, and execute `CREATE DATABASE energy_settlement2;` via SSMS.
+
+### 2. Backend Setup (FastAPI)
 Open a terminal in the `backend` folder:
 ```bash
 # 1. Create a virtual environment
@@ -106,7 +112,7 @@ uvicorn app.main:app --reload
 ```
 The API will run locally at `http://localhost:8000`.
 
-### 2. Frontend Setup (Next.js)
+### 3. Frontend Setup (Next.js)
 Open a new terminal in the `frontend` folder:
 ```bash
 # 1. Install Node dependencies
@@ -117,12 +123,16 @@ npm run dev
 ```
 The User Interface will run locally at `http://localhost:3000`.
 
+**Default System Access:**
+* Username: `admin`
+* Password: `admin123`
+
 ---
 
 ## 📖 Usage Workflow
 
 1. **Create Timeframe:** Navigate to the Settlement dashboard and click "Create New Month". Enter the exact Month and Year.
-2. **Upload Raw Data:** Click "Inputs". Upload your `.cdf` generation file and `.xlsx` consumption files. Wait for the green "COMPLETED" checkmarks.
+2. **Upload Raw Data:** Click "Inputs". Upload your `.cdf` generation file and consumption files. Wait for the green "COMPLETED" checkmarks.
 3. **Configure Variables:** Enter the Share percentages (e.g., 60% / 40%), Cap Limits, Bank Loss parameters, and any specific Generator Shutdowns or Custom Loss Dates. Click Save.
-4. **Run Calculation:** Click the "Run Calculation" button. The engine will read the DB, process the 96 slots, apply the bank ledger FIFO, and save the results.
-5. **View Report:** The system will immediately redirect you to the Report Page. Here you can view the final `Discom_KVAH` billing, visualize both consumers on the Recharts line graph, and download the full Excel Workbook containing every single calculated block.
+4. **Run Calculation:** Click the "Run Final Calculation" button. The engine will read the DB, process the 96 slots, apply the bank ledger FIFO, and save the results.
+5. **View Report:** The system will immediately redirect you to the Report Page. Here you can view the final `Discom_KVAH` billing, visualize both consumers on the Recharts line graph, Verify against the Official Excel File, and download the full Excel Workbook containing every single calculated block.
