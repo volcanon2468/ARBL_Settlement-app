@@ -131,14 +131,26 @@ class SettlementEngine:
                 is_peak_block = (25 <= slot <= 40) or (73 <= slot <= 88)
                 is_shutdown = (d, slot) in shutdown_blocks
                 raw_gen_kw = self.gen_data.get((d, slot), 0.0)
-                gen_capped = min(raw_gen_kw, cap_kw) if not is_shutdown else 0.0
-                excess_gen_kw = max(0.0, raw_gen_kw - cap_kw) if not is_shutdown else 0.0
                 
-                gen_share1 = gen_capped * (self.variables['Share_Cons1'] / 100.0) if not is_shutdown else 0.0
-                gen_share2 = gen_capped * (self.variables['Share_Cons2'] / 100.0) if not is_shutdown else 0.0
+                # Split block-wise for every 15 min block (convert KW to KWH)
+                kwh_per_block = raw_gen_kw / 4.0 if not is_shutdown else 0.0
                 
-                allocated_kw = gen_share1 + gen_share2
-                unallocated_capped_kw = max(0.0, gen_capped - allocated_kw)
+                # Cap for 6250 in each block
+                limit_kwh = cap_kw / 4.0  # 6250 KWH limit
+                capped_kwh = min(kwh_per_block, limit_kwh)
+                
+                # Extra on top of 6250 added to the bank
+                extra_kwh = max(0.0, kwh_per_block - limit_kwh)
+                
+                # Convert back to KW for power allocation
+                gen_capped_kw = capped_kwh * 4.0
+                excess_gen_kw = extra_kwh * 4.0
+                
+                gen_share1_kw = gen_capped_kw * (self.variables['Share_Cons1'] / 100.0) if not is_shutdown else 0.0
+                gen_share2_kw = gen_capped_kw * (self.variables['Share_Cons2'] / 100.0) if not is_shutdown else 0.0
+                
+                allocated_kw = gen_share1_kw + gen_share2_kw
+                unallocated_capped_kw = max(0.0, gen_capped_kw - allocated_kw)
                 
                 generator_bank_kw = excess_gen_kw + unallocated_capped_kw
 
@@ -229,8 +241,14 @@ class SettlementEngine:
         demand_kva = (actual_kw / pf) if pf > 0 else 0.0
         
         raw_gen_kw = self.gen_data.get((d, slot), 0.0)
-        gen_capped = min(raw_gen_kw, cap_kw) if not is_shutdown else 0.0
-        gen_share = gen_capped * (share_pct / 100.0) if not is_shutdown else 0.0
+        
+        # Explicit block-wise split and cap
+        kwh_per_block = raw_gen_kw / 4.0 if not is_shutdown else 0.0
+        limit_kwh = cap_kw / 4.0
+        capped_kwh = min(kwh_per_block, limit_kwh)
+        gen_capped_kw = capped_kwh * 4.0
+        
+        gen_share = gen_capped_kw * (share_pct / 100.0) if not is_shutdown else 0.0
         
         bank_inj = bank_inj_off_peak if not is_peak else 0.0
         
