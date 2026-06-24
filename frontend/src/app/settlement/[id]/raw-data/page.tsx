@@ -1,7 +1,9 @@
 "use client";
 import React from 'react';
 export default function RawDataPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = React.use(params);
+  // Next 14 / 15+ Compatibility
+  const resolvedParams = params as any;
+  const id = resolvedParams.then ? (React.use(resolvedParams) as any).id : resolvedParams.id;
   const API_BASE = "/api/v1";
   const exportRawGen = `${API_BASE}/timeframes/${id}/export?type=raw_gen`;
   const exportRawCon = `${API_BASE}/timeframes/${id}/export?type=raw_con`;

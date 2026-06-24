@@ -16,7 +16,9 @@ interface Status {
 }
 
 export default function InputsPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = React.use(params);
+  // Next 14 / 15+ Compatibility
+  const resolvedParams = params as any;
+  const id = resolvedParams.then ? (React.use(resolvedParams) as any).id : resolvedParams.id;
   const [vars, setVars] = useState<Vars>({
     Share_Cons1: '', Share_Cons2: '', Bank_Usage_Start_Month: '', Bank_Usage_Start_Year: '', Bank_Usage_End_Month: '', Bank_Usage_End_Year: '', Bank_Loss_Pct: '2'
   });

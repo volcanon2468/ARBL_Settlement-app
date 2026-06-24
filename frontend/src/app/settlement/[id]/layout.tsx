@@ -16,7 +16,9 @@ export interface Timeframe {
 }
 
 export default function TimeframeLayout({ params, children }: { params: Promise<{ id: string }>, children: React.ReactNode }) {
-  const { id } = React.use(params);
+  // Next 14 / 15+ Compatibility
+  const resolvedParams = params as any;
+  const id = resolvedParams.then ? (React.use(resolvedParams) as any).id : resolvedParams.id;
   const [timeframe, setTimeframe] = useState<Timeframe | null>(null);
   const pathname = usePathname();
   const API_BASE = "/api/v1";

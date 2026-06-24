@@ -16,7 +16,9 @@ interface Variables {
 }
 
 export default function ReportPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = React.use(params);
+  // Next 14 / 15+ Compatibility
+  const resolvedParams = params as any;
+  const id = resolvedParams.then ? (React.use(resolvedParams) as any).id : resolvedParams.id;
   const [results, setResults] = useState<Result[]>([]);
   const [vars, setVars] = useState<Variables | null>(null);
   const [chartData, setChartData] = useState<any[]>([]);
