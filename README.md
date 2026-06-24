@@ -1,5 +1,7 @@
 # APSPDCL Open-Access Management Platform
 
+> [!TIP]
+> **Quick Start:** If the application is already set up, simply double-click the **`Start_App.bat`** file in the main folder to securely launch the servers and automatically open the application in your browser.
 An enterprise-grade, full-stack application designed to automatically process, calculate, and manage massive time-series energy block data. The platform aggregates raw interval data (15-minute slots), applies dynamic mathematical loss factors, constraints, and capacity limits, and ultimately produces precise financial and physical energy settlement reports across two specific consumers.
 
 ## 🚀 Key Features

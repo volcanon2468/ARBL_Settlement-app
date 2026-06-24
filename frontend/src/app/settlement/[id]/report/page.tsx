@@ -105,10 +105,10 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
              }
              if (b.Consumer_Label === 'TPT145') {
                grouped[key].generation_tpt = b.Gen_Share_KW;
-               grouped[key].consumption_tpt = b.Discom_KVA_Block;
+               grouped[key].consumption_tpt = b.Discom_KVA;
              } else if (b.Consumer_Label === 'CTR2005') {
                grouped[key].generation_ctr = b.Gen_Share_KW;
-               grouped[key].consumption_ctr = b.Discom_KVA_Block;
+               grouped[key].consumption_ctr = b.Discom_KVA;
              }
            });
            
