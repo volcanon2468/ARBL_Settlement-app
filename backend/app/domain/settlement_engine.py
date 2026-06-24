@@ -76,25 +76,19 @@ class SettlementEngine:
         active_blocks = (self.num_days * 96) - shutdown_count
         override_cap = self.variables.get('Override_Capacity_MW')
         if override_cap is None:
-            override_cap = 50.0
+            override_cap = 25.0
         cap_kw = override_cap * 1000.0
         
-        effective_gen_kws = []
+        total_raw_gen_kwh = 0.0
+        total_gen_kwh = 0.0
+        
         for d in self.date_list:
             for slot in range(1, 97):
-                raw_kw = self.gen_data.get((d, slot), 0.0)
-                if (d, slot) in shutdown_blocks:
-                    effective_gen_kws.append(0.0)
-                else:
-                    effective_gen_kws.append(raw_kw)
-                    
-                                                                                        
-                                 
-        ebc_generator_kw_limit = cap_kw / 4.0
-        
-        total_raw_gen_kwh = sum(effective_gen_kws) / 4.0
-        total_schedule_kwh = ebc_generator_kw_limit * (active_blocks / 4.0)
-        total_gen_kwh = min(total_raw_gen_kwh, total_schedule_kwh)
+                if (d, slot) not in shutdown_blocks:
+                    raw_kw = self.gen_data.get((d, slot), 0.0)
+                    total_raw_gen_kwh += raw_kw / 4.0
+                    gen_capped = min(raw_kw, cap_kw)
+                    total_gen_kwh += gen_capped / 4.0
         
         avg_gen_kw = total_raw_gen_kwh / (active_blocks / 4.0) if active_blocks > 0 else 0.0
         
@@ -136,6 +130,15 @@ class SettlementEngine:
             for slot in range(1, 97):
                 is_peak_block = (25 <= slot <= 40) or (73 <= slot <= 88)
                 is_shutdown = (d, slot) in shutdown_blocks
+                raw_gen_kw = self.gen_data.get((d, slot), 0.0)
+                gen_capped = min(raw_gen_kw, cap_kw) if not is_shutdown else 0.0
+                excess_gen_kw = max(0.0, raw_gen_kw - cap_kw) if not is_shutdown else 0.0
+                
+                allocated_kw = (flat_kw_1 + flat_kw_2) if not is_shutdown else 0.0
+                unallocated_capped_kw = max(0.0, gen_capped - allocated_kw)
+                
+                generator_bank_kw = excess_gen_kw + unallocated_capped_kw
+
                 self._calc_block(
                     d,
                     slot,
@@ -148,7 +151,8 @@ class SettlementEngine:
                     self.iex1_data,
                     self.variables['Con1_Label'],
                     res1,
-                    cap_kw)
+                    cap_kw,
+                    0.0)
                 self._calc_block(
                     d,
                     slot,
@@ -161,7 +165,8 @@ class SettlementEngine:
                     self.iex2_data,
                     self.variables['Con2_Label'],
                     res2,
-                    cap_kw)
+                    cap_kw,
+                    generator_bank_kw)
         s1 = self._aggregate(res1, flat_kw_1, bank_per_cons, revised_gen_alloc_1, self.custom_losses, share1_kwh, self.variables['Con1_Label'])
         s2 = self._aggregate(res2, flat_kw_2, bank_per_cons, revised_gen_alloc_2, self.custom_losses, share2_kwh, self.variables['Con2_Label'])
         total_accountable = s1['Energy_Accountable_To_Gen'] +\
@@ -204,7 +209,8 @@ class SettlementEngine:
             iex_data,
             label,
             res_dict,
-            cap_kw):
+            cap_kw,
+            generator_bank_kw=0.0):
         c_raw = cons_data.get(
             (d, slot), {
                 'Apparent_KVA': 0, 'Active_KW_Raw': 0})
@@ -231,7 +237,10 @@ class SettlementEngine:
         
         aft_main = (gen_share + bank_inj) * loss_mult
         bank_in_main = max(0.0, aft_main - actual_kw)
-        net_gen_main = aft_main - bank_in_main
+        
+        bank_in_main += (generator_bank_kw * loss_mult)
+        
+        net_gen_main = aft_main - max(0.0, aft_main - actual_kw)
         
         discom_kva_block = max(0.0, (actual_kw - aft_main) / pf) if pf > 0 else 0.0
         
