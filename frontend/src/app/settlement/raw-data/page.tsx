@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ArrowLeft, DownloadCloud, Zap, Factory, Calculator, CalendarRange } from 'lucide-react';
+import logoImage from '../../icon.png';
 export default function GlobalRawDataPage() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -26,11 +27,14 @@ export default function GlobalRawDataPage() {
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Dashboard
           </Link>
-          <div className="relative z-10">
-            <h1 className="text-4xl font-extrabold tracking-tight mb-3 text-white flex items-center gap-3">
-              Global Data Export
-            </h1>
-            <p className="text-lg text-slate-300 max-w-2xl">Extract raw and calculated block-wise data across any arbitrary date range spanning multiple months.</p>
+          <div className="relative z-10 flex items-center gap-6">
+            <img src={logoImage.src} alt="Company Logo" className="w-16 md:w-20 h-auto drop-shadow-md bg-white rounded-full p-1 shrink-0" />
+            <div>
+              <h1 className="text-4xl font-extrabold tracking-tight mb-3 text-white flex items-center gap-3">
+                Global Data Export
+              </h1>
+              <p className="text-lg text-slate-300 max-w-2xl">Extract raw and calculated block-wise data across any arbitrary date range spanning multiple months.</p>
+            </div>
           </div>
         </header>
         <Card className="border-primary/10 shadow-md">

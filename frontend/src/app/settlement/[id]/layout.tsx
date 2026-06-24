@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import { usePathname } from 'next/navigation';
 import { ArrowLeft, Clock } from 'lucide-react';
+import logoImage from '../../icon.png';
 
 export interface Timeframe {
   Id: number;
@@ -48,18 +49,21 @@ export default function TimeframeLayout({ params, children }: { params: { id: st
               Back to Dashboard
             </Link>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b pb-6">
-              <div>
-                <h1 className="text-4xl font-extrabold tracking-tight mb-2 text-foreground flex items-center gap-3">
-                  {timeframe.Label}
-                </h1>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Clock className="h-4 w-4" />
-                  <span>{timeframe.Start_Date} to {timeframe.End_Date}</span>
-                  <span className="mx-2">•</span>
-                  <span>Status: </span>
-                  <span className={`font-semibold ${timeframe.Status === 'COMPLETE' ? 'text-green-600' : 'text-blue-600'}`}>
-                    {timeframe.Status || 'PENDING'}
-                  </span>
+              <div className="flex items-center gap-6">
+                <img src={logoImage.src} alt="Company Logo" className="w-16 h-auto drop-shadow-sm shrink-0" />
+                <div>
+                  <h1 className="text-4xl font-extrabold tracking-tight mb-2 text-foreground flex items-center gap-3">
+                    {timeframe.Label}
+                  </h1>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Clock className="h-4 w-4" />
+                    <span>{timeframe.Start_Date} to {timeframe.End_Date}</span>
+                    <span className="mx-2">•</span>
+                    <span>Status: </span>
+                    <span className={`font-semibold ${timeframe.Status === 'COMPLETE' ? 'text-green-600' : 'text-blue-600'}`}>
+                      {timeframe.Status || 'PENDING'}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -85,11 +89,14 @@ export default function TimeframeLayout({ params, children }: { params: { id: st
               Back to Dashboard
             </Link>
              <div className="animate-pulse flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b pb-6">
-               <div>
-                 <div className="h-10 w-64 bg-slate-200 rounded-lg mb-4"></div>
-                 <div className="flex gap-2">
-                   <div className="h-4 w-40 bg-slate-100 rounded"></div>
-                   <div className="h-4 w-24 bg-slate-100 rounded"></div>
+               <div className="flex items-center gap-6">
+                 <div className="w-16 h-16 rounded-full bg-slate-200"></div>
+                 <div>
+                   <div className="h-10 w-64 bg-slate-200 rounded-lg mb-4"></div>
+                   <div className="flex gap-2">
+                     <div className="h-4 w-40 bg-slate-100 rounded"></div>
+                     <div className="h-4 w-24 bg-slate-100 rounded"></div>
+                   </div>
                  </div>
                </div>
              </div>

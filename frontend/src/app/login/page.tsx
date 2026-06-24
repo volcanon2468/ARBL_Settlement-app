@@ -2,8 +2,9 @@
 import { toast } from 'sonner';
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import logoImage from '../icon.png';
 
-import { Lock, ArrowRight, Activity } from 'lucide-react';
+import { Lock, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 export default function LoginPage() {
@@ -42,9 +43,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md p-8 relative z-10">
         <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-xl">
           <div className="flex flex-col items-center mb-10">
-            <div className="w-16 h-16 bg-gradient-to-tr from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-blue-500/30">
-              <Activity className="w-8 h-8 text-white" />
-            </div>
+            <img src={logoImage.src} alt="Company Logo" className="w-24 h-auto mb-6" />
             <h1 className="text-3xl font-bold text-slate-900 tracking-tight text-center">Settlement App</h1>
             <p className="text-slate-500 mt-2 text-sm text-center">Enter the master password to access the energy ledger</p>
           </div>

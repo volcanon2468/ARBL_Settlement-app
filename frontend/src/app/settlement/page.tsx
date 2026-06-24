@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PlusCircle, CalendarDays, Activity, Trash2, Search } from 'lucide-react';
+import logoImage from '../icon.png';
 interface Timeframe {
   Id: number;
   Label: string;
@@ -93,11 +94,14 @@ export default function SettlementDashboard() {
           <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
             <Activity className="w-64 h-64 text-white" />
           </div>
-          <div className="relative z-10">
-            <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl mb-3 text-white">
-              Energy Settlement
-            </h1>
-            <p className="text-lg text-slate-300 font-medium">APSPDCL Open-Access Management Platform</p>
+          <div className="relative z-10 flex items-center gap-6">
+            <img src={logoImage.src} alt="Company Logo" className="w-16 md:w-20 h-auto drop-shadow-md bg-white rounded-full p-1" />
+            <div>
+              <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl mb-3 text-white">
+                Energy Settlement
+              </h1>
+              <p className="text-lg text-slate-300 font-medium">APSPDCL Open-Access Management Platform</p>
+            </div>
           </div>
           <div className="relative z-10 flex flex-col md:flex-row gap-4">
             <Link href="/settlement/raw-data">
