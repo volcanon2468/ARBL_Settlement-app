@@ -70,6 +70,8 @@ class SettlementEngine:
 
     def run(self):
         shutdown_blocks = build_shutdown_blocks(self.shutdown_windows)
+        valid_dates = set(self.date_list)
+        shutdown_blocks = {(d, s) for (d, s) in shutdown_blocks if d in valid_dates}
         shutdown_count = len(shutdown_blocks)
         active_blocks = (self.num_days * 96) - shutdown_count
         override_cap = self.variables.get('Override_Capacity_MW')

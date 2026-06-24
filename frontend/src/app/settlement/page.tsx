@@ -184,7 +184,7 @@ export default function SettlementDashboard() {
             {filteredTimeframes.map((tf: Timeframe) => (
               <Link href={`/settlement/${tf.Id}`} key={String(tf.Id)}>
                 <Card className="hover:shadow-2xl hover:-translate-y-1 hover:border-primary/50 transition-all duration-300 cursor-pointer group h-full flex flex-col bg-white border-slate-200/60 shadow-md rounded-2xl overflow-hidden relative">
-                  <div className={`absolute top-0 left-0 w-1 h-full ${tf.Status === 'COMPLETE' ? 'bg-green-500' : 'bg-blue-500'}`}></div>
+                  <div className={`absolute top-0 left-0 w-1 h-full ${tf.Status === 'COMPLETED' ? 'bg-green-500' : 'bg-blue-500'}`}></div>
                   <div className="absolute top-3 right-3 z-20">
                     <button
                       onClick={(e) => handleDelete(e, tf.Id)}
@@ -204,12 +204,12 @@ export default function SettlementDashboard() {
                   </CardHeader>
                   <CardContent className="flex-grow pt-6">
                     <div className="flex items-center gap-3 text-sm">
-                      <div className={`p-2 rounded-full ${tf.Status === 'COMPLETE' ? 'bg-green-100' : 'bg-blue-100'}`}>
-                        <Activity className={`w-4 h-4 ${tf.Status === 'COMPLETE' ? 'text-green-600' : 'text-blue-600'}`} />
+                      <div className={`p-2 rounded-full ${tf.Status === 'COMPLETED' ? 'bg-green-100' : 'bg-blue-100'}`}>
+                        <Activity className={`w-4 h-4 ${tf.Status === 'COMPLETED' ? 'text-green-600' : 'text-blue-600'}`} />
                       </div>
                       <div className="flex flex-col">
                         <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Current Status</span>
-                        <span className={`font-bold text-base ${tf.Status === 'COMPLETE' ? 'text-green-600' : 'text-blue-600'}`}>
+                        <span className={`font-bold text-base ${tf.Status === 'COMPLETED' ? 'text-green-600' : 'text-blue-600'}`}>
                           {tf.Status || 'PENDING UPLOAD'}
                         </span>
                       </div>

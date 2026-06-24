@@ -91,7 +91,17 @@ export default function InputsPage({ params }: { params: { id: string } }) {
     }
     for (let i = 0; i < shutdownWindows.length; i++) {
       const sw = shutdownWindows[i];
-      if (parseInt(sw.Window_End as string) < parseInt(sw.Window_Start as string)) {
+      const parseDateStr = (dateStr: string) => {
+        const [datePart, timePart] = dateStr.split(' ');
+        if (!datePart || !timePart) return new Date(0);
+        const [d, m, y] = datePart.split('-');
+        const [h, min] = timePart.split(':');
+        return new Date(parseInt(y), parseInt(m)-1, parseInt(d), parseInt(h), parseInt(min));
+      };
+      
+      const startD = parseDateStr(sw.Window_Start as string);
+      const endD = parseDateStr(sw.Window_End as string);
+      if (endD.getTime() < startD.getTime()) {
          setErrorMsg(`Shutdown Window ${i+1}: End Slot cannot be before Start Slot.`);
          return;
       }

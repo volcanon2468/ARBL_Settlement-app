@@ -94,6 +94,13 @@ async def upload_file(
 async def trigger_calculation(id: int,
                               background_tasks: BackgroundTasks,
                               db: AsyncSession = Depends(get_db)):
+    from app.infrastructure.models import BankLedgerTransaction
+    from fastapi import HTTPException
+    source_check = await db.execute(select(BankLedgerTransaction).where(BankLedgerTransaction.Source_Timeframe_Id == id))
+    if source_check.scalars().first():
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot recalculate this timeframe because its banked units have been consumed by a subsequent month. Please recalculate or delete the dependent months first.")
     from app.use_cases.run_calculation import _run_calculation_async
     background_tasks.add_task(_run_calculation_async, id)
     return {"success": True, "data": {"job_id": f"local_task_{id}"}}
