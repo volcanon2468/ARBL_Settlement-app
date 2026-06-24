@@ -134,7 +134,10 @@ class SettlementEngine:
                 gen_capped = min(raw_gen_kw, cap_kw) if not is_shutdown else 0.0
                 excess_gen_kw = max(0.0, raw_gen_kw - cap_kw) if not is_shutdown else 0.0
                 
-                allocated_kw = (flat_kw_1 + flat_kw_2) if not is_shutdown else 0.0
+                gen_share1 = gen_capped * (self.variables['Share_Cons1'] / 100.0) if not is_shutdown else 0.0
+                gen_share2 = gen_capped * (self.variables['Share_Cons2'] / 100.0) if not is_shutdown else 0.0
+                
+                allocated_kw = gen_share1 + gen_share2
                 unallocated_capped_kw = max(0.0, gen_capped - allocated_kw)
                 
                 generator_bank_kw = excess_gen_kw + unallocated_capped_kw
@@ -227,7 +230,7 @@ class SettlementEngine:
         
         raw_gen_kw = self.gen_data.get((d, slot), 0.0)
         gen_capped = min(raw_gen_kw, cap_kw) if not is_shutdown else 0.0
-        gen_share = flat_kw if not is_shutdown else 0.0
+        gen_share = gen_capped * (share_pct / 100.0) if not is_shutdown else 0.0
         
         bank_inj = bank_inj_off_peak if not is_peak else 0.0
         
