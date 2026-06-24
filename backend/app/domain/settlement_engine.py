@@ -250,6 +250,7 @@ class SettlementEngine:
         pf_at_rmd = 1.0
         max_date = None
         max_slot_str = ""
+        max_slot_int = 0
         discom_kvah = 0.0
         discom_kw = 0.0
         max_actual_kw = 0.0
@@ -271,6 +272,7 @@ class SettlementEngine:
                 end_h = slot * 15 // 60
                 end_m = slot * 15 % 60
                 max_slot_str = f"{start_h:02d}:{start_m:02d} to {end_h:02d}:{end_m:02d}"
+                max_slot_int = slot
 
         discom_kvah /= 4.0
         discom_kw /= 4.0
@@ -289,6 +291,7 @@ class SettlementEngine:
             'Max_Demand_KVA': rmd_after_oa,
             'Max_Date': max_date,
             'Max_Slot_Str': max_slot_str,
+            'Max_Slot_Int': max_slot_int,
             'Average_PF': avg_pf,
             'PF_Value': pf_at_rmd,
             'Max_Actual_KW': max_actual_kw,
@@ -303,7 +306,8 @@ class SettlementEngine:
         entitled_kwh = (flat_kw + spilled_kw) * active_blocks / 4.0
         bank_report = entitled_kwh - s['Energy_Accountable_To_Gen']
 
-        loss_pct = self.custom_losses[0]['Loss_Pct'] / 100.0 if self.custom_losses else 0.0
+        default_loss = self.variables.get('Default_Loss') or 0.0
+        loss_pct = get_block_loss(s['Max_Date'], s['Max_Slot_Int'], self.custom_losses, default_loss) / 100.0 if s['Max_Date'] else 0.0
 
         self.results.append({
             'Consumer_Label': label,
