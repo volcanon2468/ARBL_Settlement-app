@@ -15,14 +15,15 @@ export interface Timeframe {
   [key: string]: any;
 }
 
-export default function TimeframeLayout({ params, children }: { params: { id: string }, children: React.ReactNode }) {
+export default function TimeframeLayout({ params, children }: { params: Promise<{ id: string }>, children: React.ReactNode }) {
+  const { id } = React.use(params);
   const [timeframe, setTimeframe] = useState<Timeframe | null>(null);
   const pathname = usePathname();
   const API_BASE = "/api/v1";
 
   const loadTimeframe = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/timeframes/${params.id}`);
+      const res = await fetch(`${API_BASE}/timeframes/${id}`);
       if (!res.ok) throw new Error("Failed to fetch timeframe metadata");
       const data = await res.json();
       if(data.success) {
@@ -34,7 +35,7 @@ export default function TimeframeLayout({ params, children }: { params: { id: st
       console.error(err);
       toast.error("Network error: Could not load timeframe details. Please check your connection.");
     }
-  }, [params.id]);
+  }, [id]);
 
   useEffect(() => {
     loadTimeframe();
@@ -69,13 +70,13 @@ export default function TimeframeLayout({ params, children }: { params: { id: st
             </div>
             <div className="flex gap-2 mb-8">
               <Link
-                href={`/settlement/${params.id}/inputs`}
+                href={`/settlement/${id}/inputs`}
                 className={`py-2 px-6 rounded-full font-medium transition-all ${pathname.includes('/inputs') ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-secondary'}`}
               >
                 1. Setup & Upload
               </Link>
               <Link
-                href={`/settlement/${params.id}/report`}
+                href={`/settlement/${id}/report`}
                 className={`py-2 px-6 rounded-full font-medium transition-all ${pathname.includes('/report') ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-secondary'}`}
               >
                 2. Settlement Report

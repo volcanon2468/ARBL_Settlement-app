@@ -15,7 +15,8 @@ interface Variables {
   [key: string]: any;
 }
 
-export default function ReportPage({ params }: { params: { id: string } }) {
+export default function ReportPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = React.use(params);
   const [results, setResults] = useState<Result[]>([]);
   const [vars, setVars] = useState<Variables | null>(null);
   const [chartData, setChartData] = useState<any[]>([]);
@@ -30,7 +31,7 @@ export default function ReportPage({ params }: { params: { id: string } }) {
     setCalculating(true);
     setErrorMsg(null);
     try {
-      const res = await fetch(`${API_BASE}/timeframes/${params.id}/calculate`, { method: 'POST' });
+      const res = await fetch(`${API_BASE}/timeframes/${id}/calculate`, { method: 'POST' });
       const data = await res.json();
       if(data.success) {
         setTimeout(() => {
@@ -56,7 +57,7 @@ export default function ReportPage({ params }: { params: { id: string } }) {
     toast.info("Verifying check file...");
     
     try {
-      const res = await fetch(`${API_BASE}/timeframes/${params.id}/verify-check-file`, {
+      const res = await fetch(`${API_BASE}/timeframes/${id}/verify-check-file`, {
         method: 'POST',
         body: formData,
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
@@ -78,17 +79,17 @@ export default function ReportPage({ params }: { params: { id: string } }) {
 
   const loadResults = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/timeframes/${params.id}/results`);
+      const res = await fetch(`${API_BASE}/timeframes/${id}/results`);
       if (res.ok) {
         const data = await res.json();
         if(data.success) setResults(data.data);
       }
-      const vRes = await fetch(`${API_BASE}/timeframes/${params.id}/variables`);
+      const vRes = await fetch(`${API_BASE}/timeframes/${id}/variables`);
       if (vRes.ok) {
         const vData = await vRes.json();
         if(vData.success) setVars(vData.data);
       }
-      const bRes = await fetch(`${API_BASE}/timeframes/${params.id}/calculated`);
+      const bRes = await fetch(`${API_BASE}/timeframes/${id}/calculated`);
       if (bRes.ok) {
         const bData = await bRes.json();
         if(bData.success && bData.data) {
@@ -116,7 +117,7 @@ export default function ReportPage({ params }: { params: { id: string } }) {
       console.error("Error loading results");
       toast.error("Network Error: Could not load settlement results. Please check your connection.");
     }
-  }, [params.id]);
+  }, [id]);
 
   useEffect(() => {
     loadResults();
@@ -157,8 +158,8 @@ export default function ReportPage({ params }: { params: { id: string } }) {
           <div className="flex gap-4">
             <div>
               <input type="file" id="verify-upload" accept=".xlsx, .xls" className="hidden" onChange={handleFileUpload} disabled={verifying} />
-              <Button asChild className="bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm gap-2 cursor-pointer" disabled={verifying}>
-                <label htmlFor="verify-upload">
+              <Button className="bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm p-0 cursor-pointer" disabled={verifying}>
+                <label htmlFor="verify-upload" className="flex items-center gap-2 w-full h-full px-4 py-2 cursor-pointer">
                   {verifying ? <RefreshCw className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
                   {verifying ? "Verifying..." : "Verify Official File"}
                 </label>
@@ -170,7 +171,7 @@ export default function ReportPage({ params }: { params: { id: string } }) {
               onClick={async () => {
                 try {
                   const token = localStorage.getItem('token');
-                  const res = await fetch(`${API_BASE}/timeframes/${params.id}/export?type=final`, {
+                  const res = await fetch(`${API_BASE}/timeframes/${id}/export?type=final`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                   });
                   if (!res.ok) throw new Error("Export failed");
@@ -178,7 +179,7 @@ export default function ReportPage({ params }: { params: { id: string } }) {
                   const url = window.URL.createObjectURL(blob);
                   const a = document.createElement('a');
                   a.href = url;
-                  a.download = `Settlement_History_${params.id}.xlsx`;
+                  a.download = `Settlement_History_${id}.xlsx`;
                   document.body.appendChild(a);
                   a.click();
                   a.remove();

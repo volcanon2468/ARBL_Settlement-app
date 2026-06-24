@@ -1,11 +1,12 @@
 "use client";
 import React from 'react';
-export default function RawDataPage({ params }: { params: { id: string } }) {
+export default function RawDataPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = React.use(params);
   const API_BASE = "/api/v1";
-  const exportRawGen = `${API_BASE}/timeframes/${params.id}/export?type=raw_gen`;
-  const exportRawCon = `${API_BASE}/timeframes/${params.id}/export?type=raw_con`;
-  const exportCalculated = `${API_BASE}/timeframes/${params.id}/export?type=calculated`;
-  const exportHistoryWorkbook = `${API_BASE}/timeframes/${params.id}/export?type=history_workbook`;
+  const exportRawGen = `${API_BASE}/timeframes/${id}/export?type=raw_gen`;
+  const exportRawCon = `${API_BASE}/timeframes/${id}/export?type=raw_con`;
+  const exportCalculated = `${API_BASE}/timeframes/${id}/export?type=calculated`;
+  const exportHistoryWorkbook = `${API_BASE}/timeframes/${id}/export?type=history_workbook`;
   return (
     <div className="space-y-6 max-w-4xl">
       <h2 className="text-xl font-semibold mb-4 text-slate-800">Block-wise Data Exports</h2>

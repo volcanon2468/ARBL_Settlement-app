@@ -15,7 +15,8 @@ interface Status {
   [key: string]: any;
 }
 
-export default function InputsPage({ params }: { params: { id: string } }) {
+export default function InputsPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = React.use(params);
   const [vars, setVars] = useState<Vars>({
     Share_Cons1: '', Share_Cons2: '', Bank_Usage_Start_Month: '', Bank_Usage_Start_Year: '', Bank_Usage_End_Month: '', Bank_Usage_End_Year: '', Bank_Loss_Pct: '2'
   });
@@ -31,17 +32,17 @@ export default function InputsPage({ params }: { params: { id: string } }) {
 
   const loadVars = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/timeframes/${params.id}/variables`);
+      const res = await fetch(`${API_BASE}/timeframes/${id}/variables`);
       if (res.ok) {
         const data = await res.json();
         if(data.success && data.data) setVars(data.data);
       }
-      const swRes = await fetch(`${API_BASE}/timeframes/${params.id}/shutdown_windows`);
+      const swRes = await fetch(`${API_BASE}/timeframes/${id}/shutdown_windows`);
       if (swRes.ok) {
         const swData = await swRes.json();
         if(swData.success && swData.data) setShutdownWindows(swData.data);
       }
-      const clRes = await fetch(`${API_BASE}/timeframes/${params.id}/custom_losses`);
+      const clRes = await fetch(`${API_BASE}/timeframes/${id}/custom_losses`);
       if (clRes.ok) {
         const clData = await clRes.json();
         if(clData.success && clData.data) setCustomLosses(clData.data);
@@ -50,10 +51,10 @@ export default function InputsPage({ params }: { params: { id: string } }) {
       console.error(e);
       toast.error("Network Error: Could not fetch settlement setup parameters.");
     }
-  }, [params.id]);
+  }, [id]);
   const loadStatus = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/timeframes/${params.id}/upload/status`);
+      const res = await fetch(`${API_BASE}/timeframes/${id}/upload/status`);
       if (res.ok) {
         const data = await res.json();
         if(data.success) setStatus(data.data);
@@ -62,7 +63,7 @@ export default function InputsPage({ params }: { params: { id: string } }) {
       console.error(e);
       toast.error("Network Error: Could not fetch upload status.");
     }
-  }, [params.id]);
+  }, [id]);
 
   useEffect(() => {
     loadVars();
@@ -126,17 +127,17 @@ export default function InputsPage({ params }: { params: { id: string } }) {
         if (payload[k] === '') payload[k] = null;
         else if (payload[k] !== null && payload[k] !== undefined) payload[k] = parseInt(String(payload[k]));
       });
-      const res = await fetch(`${API_BASE}/timeframes/${params.id}/variables`, {
+      const res = await fetch(`${API_BASE}/timeframes/${id}/variables`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      const swRes = await fetch(`${API_BASE}/timeframes/${params.id}/shutdown_windows`, {
+      const swRes = await fetch(`${API_BASE}/timeframes/${id}/shutdown_windows`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ windows: shutdownWindows })
       });
-      const clRes = await fetch(`${API_BASE}/timeframes/${params.id}/custom_losses`, {
+      const clRes = await fetch(`${API_BASE}/timeframes/${id}/custom_losses`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ losses: customLosses.map(cl => ({...cl, Loss_Pct: parseFloat(cl.Loss_Pct) || 0})) })
@@ -153,7 +154,7 @@ export default function InputsPage({ params }: { params: { id: string } }) {
         const formData = new FormData();
         formData.append("file", file);
         try {
-          const upRes = await fetch(`${API_BASE}/timeframes/${params.id}/upload/${type}`, {
+          const upRes = await fetch(`${API_BASE}/timeframes/${id}/upload/${type}`, {
             method: 'POST',
             body: formData
           });
@@ -175,7 +176,7 @@ export default function InputsPage({ params }: { params: { id: string } }) {
       setUploading(null);
       loadStatus();
       toast.success("Variables and files saved successfully!");
-      router.push(`/settlement/${params.id}/report`);
+      router.push(`/settlement/${id}/report`);
     } catch {
       setErrorMsg("An unexpected network error occurred.");
     } finally {
